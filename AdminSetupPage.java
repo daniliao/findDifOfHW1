@@ -31,27 +31,54 @@ public class AdminSetupPage {
         passwordField.setPromptText("Enter Password");
         passwordField.setMaxWidth(250);
 
+        // Label to display error messages for invalid userName input
+        Label userNameErrorLabel = new Label();
+        userNameErrorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12px;");
+        
+        // Label to display error messages for invalid password input
+        Label passwordErrorLabel = new Label();
+        passwordErrorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12px;");
+        
         Button setupButton = new Button("Setup");
         
         setupButton.setOnAction(a -> {
         	// Retrieve user input
             String userName = userNameField.getText();
             String password = passwordField.getText();
-            try {
-            	// Create a new User object with admin role and register in the database
-            	User user=new User(userName, password, "admin");
-                databaseHelper.register(user);
-                System.out.println("Administrator setup completed.");
-                
-                // Navigate to the Welcome Login Page
-                new WelcomeLoginPage(databaseHelper).show(primaryStage,user);
-            } catch (SQLException e) {
-                System.err.println("Database error: " + e.getMessage());
-                e.printStackTrace();
+            
+            // See if user name is valid or not
+ 			String UserNameRecognitionMessage = UserNameRecognizer.checkForValidUserName(userName);
+ 			
+            // See if password is valid or not
+            String passwordEvaluationMessage = PasswordEvaluator.evaluatePassword(password);
+            
+            
+            if (!passwordEvaluationMessage.isEmpty()) {
+            	userNameErrorLabel.setText("");
+                passwordErrorLabel.setText("Password Error: " + passwordEvaluationMessage);
+            } else if (!UserNameRecognitionMessage.isEmpty()) {
+            	passwordErrorLabel.setText("");
+            	userNameErrorLabel.setText("User Name Error:" + UserNameRecognitionMessage);
+            } else {
+            	userNameErrorLabel.setText("");
+            	passwordErrorLabel.setText("");
+            	
+	            try {
+	            	// Create a new User object with admin role and register in the database
+	            	User user=new User(userName, password, "admin");
+	                databaseHelper.register(user);
+	                System.out.println("Administrator setup completed.");
+	                
+	                // Navigate to the Welcome Login Page
+	                new WelcomeLoginPage(databaseHelper).show(primaryStage,user);
+	            } catch (SQLException e) {
+	                System.err.println("Database error: " + e.getMessage());
+	                e.printStackTrace();
+	            }
             }
         });
 
-        VBox layout = new VBox(10, userNameField, passwordField, setupButton);
+        VBox layout = new VBox(10, userNameField, passwordField, setupButton, userNameErrorLabel, passwordErrorLabel);
         layout.setStyle("-fx-padding: 20; -fx-alignment: center;");
 
         primaryStage.setScene(new Scene(layout, 800, 400));

@@ -1,9 +1,15 @@
 package application;
-
+import application.UserNameRecognizer;
 import javafx.scene.Scene;
 import javafx.scene.control.*;
 import javafx.scene.layout.VBox;
+import javafx.scene.paint.Color;
+import javafx.scene.text.Text;
+import javafx.scene.text.TextFlow;
 import javafx.stage.Stage;
+import application.PasswordEvaluator;
+
+
 
 import java.sql.SQLException;
 
@@ -14,7 +20,7 @@ import databasePart1.*;
  * Users provide their userName, password, and a valid invitation code to register.
  */
 public class SetupAccountPage {
-	
+
     private final DatabaseHelper databaseHelper;
     // DatabaseHelper to handle database operations.
     public SetupAccountPage(DatabaseHelper databaseHelper) {
@@ -43,6 +49,14 @@ public class SetupAccountPage {
         Label errorLabel = new Label();
         errorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12px;");
         
+        // Label to display error messages for invalid userName input
+        Label userNameErrorLabel = new Label();
+        userNameErrorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12px;");
+        
+        // Label to display error messages for invalid password input
+        Label passwordErrorLabel = new Label();
+        passwordErrorLabel.setStyle("-fx-text-fill: red; -fx-font-size: 12px;");
+        
 
         Button setupButton = new Button("Setup");
         
@@ -50,42 +64,55 @@ public class SetupAccountPage {
         	// Retrieve user input
             String userName = userNameField.getText();
             String password = passwordField.getText();
-            String code = inviteCodeField.getText();
             
-            try {
-            	// Check if the user already exists
-            	if(!databaseHelper.doesUserExist(userName)) {
-            		
-            		// Validate the invitation code
-            		if(databaseHelper.validateInvitationCode(code)) {
-            			
-            			// Create a new user and register them in the database
-		            	User user=new User(userName, password, "user");
-		                databaseHelper.register(user);
-		                
-		             // Navigate to the Welcome Login Page
-		                new WelcomeLoginPage(databaseHelper).show(primaryStage,user);
-            		}
-            		else {
-            			errorLabel.setText("Please enter a valid invitation code");
-            		}
-            	}
-            	else {
-            		errorLabel.setText("This useruserName is taken!!.. Please use another to setup an account");
-            	}
-            	
-            } catch (SQLException e) {
-                System.err.println("Database error: " + e.getMessage());
-                e.printStackTrace();
+            // See if user name is valid or not
+ 			String UserNameRecognitionMessage = UserNameRecognizer.checkForValidUserName(userName);
+ 			
+            // See if password is valid or not
+            String passwordEvaluationMessage = PasswordEvaluator.evaluatePassword(password);
+            
+            
+            if (!passwordEvaluationMessage.isEmpty()) {
+            	userNameErrorLabel.setText("");
+                passwordErrorLabel.setText("Password Error: " + passwordEvaluationMessage);
+            } else if (!UserNameRecognitionMessage.isEmpty()) {
+            	passwordErrorLabel.setText("");
+            	userNameErrorLabel.setText("User Name Error:" + UserNameRecognitionMessage);
+            } else {
+            	userNameErrorLabel.setText("");
+            	passwordErrorLabel.setText("");
+
+                try {
+                    // Check if the user already exists
+                    if (!databaseHelper.doesUserExist(userName)) {
+                        // Create a new user and register them in the database
+                        User user = new User(userName, password, "user");
+                        databaseHelper.register(user);
+                        
+                        // Navigate to the Welcome Login Page
+                        new WelcomeLoginPage(databaseHelper).show(primaryStage, user);
+                    } else {
+                        errorLabel.setText("This username is taken! Please use another to set up an account.");
+                    }
+                    
+                } catch (SQLException e) {
+                    System.err.println("Database error: " + e.getMessage());
+                    e.printStackTrace();
+                }
             }
         });
 
         VBox layout = new VBox(10);
         layout.setStyle("-fx-padding: 20; -fx-alignment: center;");
-        layout.getChildren().addAll(userNameField, passwordField,inviteCodeField, setupButton, errorLabel);
+        layout.getChildren().addAll(userNameField, passwordField,inviteCodeField, setupButton, errorLabel, userNameErrorLabel, passwordErrorLabel);
 
         primaryStage.setScene(new Scene(layout, 800, 400));
         primaryStage.setTitle("Account Setup");
         primaryStage.show();
     }
+    
+    
+    
+    
+    
 }
